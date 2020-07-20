@@ -27,17 +27,17 @@ ui <- dashboardPagePlus(
     sidebar = dashboardSidebar(
         sidebarMenu(
             
-            menuItem("Unemployment", tabName = "page1", icon = icon("line-chart"))
+            menuItem("Unemployment", tabName = "page3", icon = icon("line-chart"))
             
         )
     ),
     body = dashboardBody(
         tabItems(
-            tabItem(tabName = "page1",
-                    selectInput("area", label = h3("State and area"), 
+            tabItem(tabName = "page3",
+                    selectInput("area", label = h3("Select state and area"), 
                                 choices = c(''),
-                                multiple = TRUE,selected="Nevada"),
-                    plotlyOutput("plot1")
+                                multiple = TRUE,selected="Maryland"),
+                    plotlyOutput("unline")
             )
         )
     ),
@@ -76,10 +76,10 @@ server <- function(input, output, session) {
     updateSelectInput(session = session,
                       inputId = 'area',
                       choices = unique(unemployment$`State and area`),
-                      selected = 'Nevada'
+                      selected = 'Maryland'
     )
     
-    output$plot1 = renderPlotly({
+    output$unline = renderPlotly({
         
         # filter the data for each state or area
         filteredstate <- unemployment%>% filter(`State and area` %in% input$area)
