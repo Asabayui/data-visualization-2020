@@ -93,7 +93,7 @@ server <- function(input, output, session) {
                    title= " Unemployment Rate from Jan 1976 to May 2020")+
             scale_y_continuous(limits=c(0,35),breaks = c(0,5,10,15,20,25,30,35))+ 
             geom_vline(aes(xintercept = as.yearmon("Jan 2020")),color="black",linetype="dashed",alpha=0.5,size=0.4) +
-            annotate("text", x =  as.yearmon("May 2020"), y = 20,
+            annotate("text", x =  as.yearmon("May 2020"), y = 33,
                      label = " COVID-19", size = 3.3) +
             theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                   panel.background = element_blank(), axis.line = element_line(colour = "black"))+ #remove grey background 
