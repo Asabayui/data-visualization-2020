@@ -43,7 +43,7 @@ ui <- dashboardPagePlus(
             ),
             tabItem(tabName = "page4",
                     sliderInput(
-                        inputId = "month", min = 1, max = 7, 
+                        inputId = "month", min = 1, max = 5, 
                         label = h3("Select month"), value = 1
                     ),
                     radioButtons(
