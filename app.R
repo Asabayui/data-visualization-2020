@@ -25,13 +25,15 @@ library(tigris)
 
 ui <- dashboardPagePlus(
     header = dashboardHeaderPlus(title = "Coronavirus", 
-                                 enable_rightsidebar = TRUE, rightSidebarIcon = "gears"),
+                                 enable_rightsidebar = FALSE),
     sidebar = dashboardSidebar(
-        sidebarMenu(
-            menuItem("Monthly Map", tabName = "page3", icon = icon("users")),
+        sidebarMenu( 
+            menuItem("Maps",  icon = icon("map-o"),
+                  menuSubItem("Daily Map", tabName = "page2", icon = icon("angle-right")),  
+                  menuSubItem("Monthly Map", tabName = "page3", icon = icon("angle-right"))),
             menuItem("Unemployment", tabName = "page4", icon = icon("line-chart")),
-            menuItem("Relationship", tabName = "page5", icon = icon("line-chart"))
-            
+            menuItem("Relationship", tabName = "page5", icon = icon("line-chart")),
+            menuItem("About", tabName = "page6", icon = icon("question"))
         )
     ),
     body = dashboardBody(
@@ -65,19 +67,38 @@ ui <- dashboardPagePlus(
                         choices = c("Confirmed","Deaths"), selected = "Confirmed"
                     ),
                     plotlyOutput("relationship")
-                    )
+            ),
+            tabItem("page6",
+                     tags$div(
+                         tags$h4("Data Sources"), 
+                         tags$b("2019-COVID cases: "), tags$a(href="https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series", "Johns Hopkins Center for Systems Science and Engineering github page"),
+                         tags$br(),
+                         tags$b("US Unemployment data: "), tags$a(href="https://www.bls.gov/lau/","U.S. BUREAU OF LABOR STATISTICS"), ", Last update on May 2020",
+                         tags$br(),tags$br(),tags$br(),tags$h4("Code"),
+                         "Code and input data used to generate this Shiny mapping tool are available on ",tags$a(href="https://github.com/Asabayui/data-visualization-2020", "Github."),
+                         
+                         tags$br(),tags$br(),tags$br(),tags$h4("Team"),
+                         "Junjie Huang",tags$br(),
+                         "MS of Marketing at JHU Carey Business School",tags$br(),"jhuang140@jhu.edu",tags$br(),tags$br(),
+                         "Ye Jin", tags$br(),
+                         "MS of Marketing at JHU Carey Business School",tags$br(),"yjin27@jhu.edu",tags$br(),tags$br(),
+                         "Shuyi(Yui) Shen", tags$br(),
+                         "MS of Marketing at JHU Carey Business School",tags$br(),"sshen18@jhu.edu",tags$br(),tags$br(),
+                         "Muchen Xiao",tags$br(),
+                         "MS of Marketing at JHU Carey Business School",tags$br(),"mxiao9@jhu.edu"
+                         
+                        
+                     )
+            )
+            
         )
     ),
     
     
     
     
-    rightsidebar = rightSidebar(
-        tags$a("Data Source",href="https://github.com/CSSEGISandData/COVID-19",
-               target="_blank")
-        
-    ),
-    title = "DashboardPage"
+    
+    title = "Coronavirus"
 
 )
 
