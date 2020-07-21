@@ -16,6 +16,7 @@ library(DT)
 library(plotly)
 library(zoo)
 library(lubridate)
+library(tigris)
 
 
 
@@ -27,21 +28,34 @@ ui <- dashboardPagePlus(
                                  enable_rightsidebar = TRUE, rightSidebarIcon = "gears"),
     sidebar = dashboardSidebar(
         sidebarMenu(
-            
-            menuItem("Unemployment", tabName = "page3", icon = icon("line-chart")),
-            menuItem("Relationship", tabName = "page4", icon = icon("line-chart"))
+            menuItem("Monthly Map", tabName = "page3", icon = icon("users")),
+            menuItem("Unemployment", tabName = "page4", icon = icon("line-chart")),
+            menuItem("Relationship", tabName = "page5", icon = icon("line-chart"))
             
         )
     ),
     body = dashboardBody(
         tabItems(
-            tabItem(tabName = "page3",
+            tabItem(tabName = "page3",  
+                    radioButtons(
+                        inputId = "casetype", label = "Select case type", 
+                        choices = c("Confirmed","Deaths"), selected = "Confirmed"
+                    ),
+                    sliderInput(
+                        inputId = "month3", min = 1, max = 7, 
+                        label = h3("Select month"), value = 1
+                    ),
+                    
+                    leafletOutput("monthlyMap", width="100%")
+            ),
+                    
+            tabItem(tabName = "page4",
                     selectInput("area", label = h3("Select state and area"), 
                                 choices = c(''),
                                 multiple = TRUE,selected="Maryland"),
                     plotlyOutput("unline")
             ),
-            tabItem(tabName = "page4",
+            tabItem(tabName = "page5",
                     sliderInput(
                         inputId = "month", min = 1, max = 5, 
                         label = h3("Select month"), value = 1
@@ -59,7 +73,7 @@ ui <- dashboardPagePlus(
     
     
     rightsidebar = rightSidebar(
-        tags$a("Data Source",href="https://www.bls.gov/web/laus.supp.toc.htm",
+        tags$a("Data Source",href="https://github.com/CSSEGISandData/COVID-19",
                target="_blank")
         
     ),
@@ -69,8 +83,6 @@ ui <- dashboardPagePlus(
 
 server <- function(input, output, session) {
     
-    
-    ### Daily Deaths & Confirmed Cases
     dailydeaths <- read.csv("time_series_covid19_deaths_US.csv")
     dailyconfirmed <- read.csv("time_series_covid19_confirmed_US.csv")
     
@@ -84,6 +96,8 @@ server <- function(input, output, session) {
     daily <- merge(dailydeaths, dailyconfirmed, by = c("Province_State", "Country_Region", "Lat", "Long_", "Combined_Key", "date"))
     daily$date <- as.Date(daily$date, format = "X%m.%d.%y")
     
+   
+    
     # For the daily-case positioning map
     daily_position <- subset(daily, Lat != 0 & Long_ != 0)
     
@@ -91,6 +105,49 @@ server <- function(input, output, session) {
     ### Total Deaths & Confirmed Cases (Including New & Cumulative)
     total <- read.csv("US covid19.csv") %>%
         subset(select = c(1,3,14,23,20))
+    
+   # monthly cumulative confirmed and deaths
+    cumulative1=daily %>% filter(date=="2020-01-31")%>%group_by(Province_State)%>% 
+        summarise(month =1, confirmtotal = sum(confirmed),deathtotal=sum(deaths))
+    cumulative2=daily %>% filter(date=="2020-02-29")%>%group_by(Province_State)%>% 
+        summarise(month =2, confirmtotal = sum(confirmed),deathtotal=sum(deaths))
+    cumulative3=daily %>% filter(date=="2020-03-31")%>%group_by(Province_State)%>% 
+        summarise(month =3, confirmtotal = sum(confirmed),deathtotal=sum(deaths))
+    cumulative4=daily %>% filter(date=="2020-04-30")%>%group_by(Province_State)%>% 
+        summarise(month =4, confirmtotal = sum(confirmed),deathtotal=sum(deaths))
+    cumulative5=daily %>% filter(date=="2020-05-31")%>%group_by(Province_State)%>% 
+        summarise(month =5, confirmtotal = sum(confirmed),deathtotal=sum(deaths))
+    cumulative6=daily %>% filter(date=="2020-06-30")%>%group_by(Province_State)%>% 
+        summarise(month =6, confirmtotal = sum(confirmed),deathtotal=sum(deaths))
+    cumulative7=daily %>% filter(date=="2020-07-14")%>%group_by(Province_State)%>% 
+        summarise(month =7, confirmtotal = sum(confirmed),deathtotal=sum(deaths))
+    
+    cumulative_monthly = rbind(cumulative1,cumulative2,cumulative3,cumulative4,cumulative5,cumulative6,cumulative7)
+    colnames(cumulative_monthly)[1]<-"State and area"
+    
+   # monthly increased confirmed and deaths
+    increaseconfirm = rep(0,length(cumulative_monthly$month))
+    for (i in 59:length(cumulative_monthly$month)){
+        increaseconfirm[i] = cumulative_monthly$confirmtotal[i]-cumulative_monthly$confirmtotal[i-58]
+    }
+    cumulative_monthly$increaseconfirm=increaseconfirm
+    
+    increasedeath = rep(0,length(cumulative_monthly$month))
+    for (i in 59:length(cumulative_monthly$month)){
+        increasedeath[i] = cumulative_monthly$deathtotal[i]-cumulative_monthly$deathtotal[i-58]
+    }
+    cumulative_monthly$increasedeath=increasedeath
+    
+    #For US state map
+    states <- states(cb=T)
+    colnames(states)[6]<- "State and area"
+    states %>% 
+        leaflet() %>% 
+        addTiles() %>% 
+        addPolygons(popup=~`State and area`)
+
+    states_merged_cumulative<- merge(states,cumulative_monthly,by="State and area")
+    states_merged_cumulative<- na.omit(states_merged_cumulative)
     
     ### Unemployment Data
     unemployment<- read_csv("ststdsadata2.csv")
@@ -103,9 +160,7 @@ server <- function(input, output, session) {
     }
         unemployment$yearmon = as.yearmon(yearmon, "%Y%m")
     
-    # Add a column to identify before or after coronavirus
-    unemployment$corona<- ifelse((year(unemployment$yearmon)<2020),"Before ","After")
-    
+   
    
     
     ### Summarize Monthly Data
@@ -142,6 +197,64 @@ server <- function(input, output, session) {
                       choices = unique(unemployment$`State and area`),
                       selected = 'Maryland'
     )
+    
+    
+    output$monthlyMap = renderLeaflet({
+        
+        #Plotting
+        substates_merged_cumulative<-subset(states_merged_cumulative,month==input$month3)
+        
+        if(input$casetype == "Confirmed"){
+            # Creating a color palette based on the number range in the confirmed column
+            pal <- colorNumeric("Blues", substates_merged_cumulative$confirmtotal)
+            # Setting up the pop up text
+            popup_con <- paste0("<strong>", substates_merged_cumulative$`State and area`,
+                                "</strong><br />Cumulatively confirmed cases: ", substates_merged_cumulative$confirmtotal,
+                                "</strong><br />Increased confirmed cases: ", substates_merged_cumulative$increaseconfirm
+            )
+            
+            leaflet() %>%
+                addProviderTiles("CartoDB.Positron") %>%
+                setView(-98.483330, 38.712046, zoom = 3.5) %>% 
+                addPolygons(data=substates_merged_cumulative,
+                            fillColor = ~pal(substates_merged_cumulative$confirmtotal), 
+                            fillOpacity = 1, 
+                            weight = 0.2, 
+                            smoothFactor = 0.2, 
+                            popup = ~popup_con) %>%
+                addLegend(pal = pal, 
+                          values = substates_merged_cumulative$confirmtotal, 
+                          position = "bottomright", 
+                          title = "Cumulatively confirmed")
+            
+        }else
+            if(input$casetype == "Deaths"){
+                pal2 <- colorNumeric(c("#fee5d9","#fcbba1","#fc9272","#fb6a4a","#ef3b2c","#cb181d","#99000d"), substates_merged_cumulative$death)
+                # Setting up the pop up text
+                popup_con2 <- paste0("<strong>", substates_merged_cumulative$`State and area`,
+                                     "</strong><br />Cumulatively confirmed cases: ", substates_merged_cumulative$death,
+                                     "</strong><br />Increased confirmed cases: ", substates_merged_cumulative$increasedeath
+                )
+                
+                
+                
+                leaflet() %>%
+                    addProviderTiles("CartoDB.Positron") %>%
+                    setView(-98.483330, 38.712046, zoom = 3.5) %>% 
+                    addPolygons(data=substates_merged_cumulative,
+                                fillColor = ~pal2(substates_merged_cumulative$death), 
+                                fillOpacity = 1, 
+                                weight = 0.2, 
+                                smoothFactor = 0.2, 
+                                popup = ~popup_con2) %>%
+                    addLegend(pal = pal2, 
+                              values = substates_merged_cumulative$death, 
+                              position = "bottomright", 
+                              title = "Cumulative deaths")  
+            }
+        
+    })
+    
     
     output$unline = renderPlotly({
         
